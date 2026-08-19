@@ -22,6 +22,7 @@ Staleness is checked by `make lint` via `--check`.
 - `regs`
 - `lint`
 - `sim`
+- `ip_sim`
 - `sw`
 - `synth`
 - `clean`
@@ -48,6 +49,7 @@ make regs && make lint && make sim && make sw && make synth
 | `soc_csr` | `ips/soc_csr/rtl/soc_csr.sv` |
 | `sram_ctrl` | `ips/sram_ctrl/rtl/sram_ctrl.sv` |
 | `wb_interconnect` | `ips/wb_interconnect/rtl/wb_interconnect.sv` |
+| `wb_periph_stub` | `ips/wb_periph_stub/rtl/wb_periph_stub.sv` |
 | `dashcam_soc_top` | `top/rtl/dashcam_soc_top.sv` |
 
 ## Layout
