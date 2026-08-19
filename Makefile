@@ -16,7 +16,7 @@ RTL_SV := $(shell find $(ROOT)/ips $(ROOT)/top -type f \( -name '*.sv' -o -name 
 help:
 	@echo "Dashcam SoC self-check gates:"
 	@echo "  make regs   - generate register-map collateral"
-	@echo "  make lint   - verilator lint-only + AGENTS.md freshness"
+	@echo "  make lint   - verilator lint-only (top+leaves) + lint_report.txt"
 	@echo "  make sim    - verilator smoke (deletes stale outs first)"
 	@echo "  make ip_sim - run per-IP Verilator testbenches"
 	@echo "  make sw     - build firmware image (toolchain or Python fallback)"
@@ -39,17 +39,48 @@ regs:
 MODULE ?=
 LINT_TOP := $(if $(MODULE),$(basename $(notdir $(MODULE))),dashcam_soc_top)
 
+# Leaf IPs linted standalone so uninstantiated modules (e.g. wb_periph_stub)
+# still get full -Wall coverage; hierarchical modules are covered via LINT_TOP.
+LINT_LEAVES := \
+	cam_capture csr_cam csr_dma dma_engine csr_iomux iomux csr_irq irq_ctrl \
+	picorv32_wb rst_sync csr_sdspi sd_spi sram_ctrl wb_interconnect wb_periph_stub
+
+LINT_REPORT := $(ROOT)/lint_report.txt
+
 # ---------------------------------------------------------------------------
 # lint — synthesizable RTL only; never lint testbenches
+# Writes lint_report.txt; fails on any %Warning / %Error (severity >= warning).
 # ---------------------------------------------------------------------------
 lint:
 	@test -n "$(RTL_SV)" || (echo "error: no RTL sources found" >&2; exit 1)
 	python3 $(SCRIPTS)/gen_agent_docs.py --check
-	verilator --lint-only -sv -Wall -Wno-fatal \
-		--top-module $(LINT_TOP) \
-		-I$(ROOT)/ips \
-		-I$(ROOT)/include \
-		$(RTL_SV)
+	@rm -f $(LINT_REPORT)
+	@set -e; \
+	{ \
+	  echo "=== lint top: $(LINT_TOP) ==="; \
+	  verilator --lint-only -sv -Wall \
+	    --top-module $(LINT_TOP) \
+	    -I$(ROOT)/ips \
+	    -I$(ROOT)/include \
+	    $(RTL_SV); \
+	  for m in $(LINT_LEAVES); do \
+	    f=$$(echo $(RTL_SV) | tr ' ' '\n' | grep -E "/$${m}\\.(sv|v)$$" | head -n1); \
+	    if [ -z "$$f" ]; then echo "error: missing RTL for leaf $$m" >&2; exit 1; fi; \
+	    echo "=== lint leaf: $$m ($$f) ==="; \
+	    verilator --lint-only -sv -Wall \
+	      --top-module $$m \
+	      -I$(ROOT)/ips \
+	      -I$(ROOT)/include \
+	      $$f; \
+	  done; \
+	  echo "lint: OK (0 Verilator findings across top + leaf RTL)"; \
+	} 2>&1 | tee $(LINT_REPORT); \
+	if grep -E '%Warning|%Error' $(LINT_REPORT) >/dev/null; then \
+	  echo "error: lint_report.txt contains warning/error lines" >&2; \
+	  exit 1; \
+	fi
+	@# Task parse: flag severity >= warning (Verilator %Warning / %Error tokens only)
+	@! grep -E '%Warning|%Error' $(LINT_REPORT)
 
 # ---------------------------------------------------------------------------
 # sim — delete stale outputs, then build/run; require SMOKE_PASS + PPM

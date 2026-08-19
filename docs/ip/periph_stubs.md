@@ -90,5 +90,7 @@ and `RESET_SYNC` CSR identities.
 ### Top-level integration
 
 SoC uses functional sideband stubs (`sd_spi`, `iomux`, `rst_sync`) wired through
-`soc_csr` / pads. `wb_periph_stub` is available for standalone CSR scaffolding
-and is synthesizable but unused by `dashcam_soc_top`.
+`soc_csr` / `address_decode` / pads. `sd_spi.done` feeds `irq_ctrl` vector bit 2
+(`IRQ_ENABLE.SDSPI`). See [`../integration.md`](../integration.md).
+`wb_periph_stub` remains a synthesizable CSR template for IP benches and is not
+instantiated inside `dashcam_soc_top`.

@@ -115,7 +115,8 @@
           "description": "IRQ enable mask",
           "fields": [
             {"name": "CAM", "bits": "0", "access": "rw", "description": "Camera IRQ enable"},
-            {"name": "DMA", "bits": "1", "access": "rw", "description": "DMA IRQ enable"}
+            {"name": "DMA", "bits": "1", "access": "rw", "description": "DMA IRQ enable"},
+            {"name": "SDSPI", "bits": "2", "access": "rw", "description": "SD-SPI IRQ enable"}
           ]
         },
         {
@@ -126,7 +127,8 @@
           "description": "IRQ pending (W1C)",
           "fields": [
             {"name": "CAM", "bits": "0", "access": "rw", "description": "Camera pending"},
-            {"name": "DMA", "bits": "1", "access": "rw", "description": "DMA pending"}
+            {"name": "DMA", "bits": "1", "access": "rw", "description": "DMA pending"},
+            {"name": "SDSPI", "bits": "2", "access": "rw", "description": "SD-SPI pending"}
           ]
         },
         {
@@ -137,7 +139,8 @@
           "description": "Masked IRQ status",
           "fields": [
             {"name": "CAM", "bits": "0", "access": "ro", "description": "Camera active"},
-            {"name": "DMA", "bits": "1", "access": "ro", "description": "DMA active"}
+            {"name": "DMA", "bits": "1", "access": "ro", "description": "DMA active"},
+            {"name": "SDSPI", "bits": "2", "access": "ro", "description": "SD-SPI active"}
           ]
         }
       ]

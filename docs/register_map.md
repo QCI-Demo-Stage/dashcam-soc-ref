@@ -96,6 +96,7 @@ Interrupt controller
 |------|------|--------|-------------|
 | `0` | `CAM` | rw | Camera IRQ enable |
 | `1` | `DMA` | rw | DMA IRQ enable |
+| `2` | `SDSPI` | rw | SD-SPI IRQ enable |
 
 ### PENDING
 
@@ -103,6 +104,7 @@ Interrupt controller
 |------|------|--------|-------------|
 | `0` | `CAM` | rw | Camera pending |
 | `1` | `DMA` | rw | DMA pending |
+| `2` | `SDSPI` | rw | SD-SPI pending |
 
 ### STATUS
 
@@ -110,6 +112,7 @@ Interrupt controller
 |------|------|--------|-------------|
 | `0` | `CAM` | ro | Camera active |
 | `1` | `DMA` | ro | DMA active |
+| `2` | `SDSPI` | ro | SD-SPI active |
 
 ## iomux @ `0x10000300`
 

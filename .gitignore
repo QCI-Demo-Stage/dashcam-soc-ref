@@ -2,6 +2,7 @@ out/
 dv/sim/verilator_smoke/out/
 dv/ip/*/out/
 sw/out/
+lint_report.txt
 *.vcd
 *.fst
 __pycache__/

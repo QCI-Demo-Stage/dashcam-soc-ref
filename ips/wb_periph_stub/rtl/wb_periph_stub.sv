@@ -28,7 +28,8 @@ module wb_periph_stub #(
     assign req      = wb_cyc & wb_stb;
     assign ctrl_reg = ctrl;
 
-    wire unused_sel = ^wb_sel;
+    // Tie off unused Wishbone address MSBs and byte enables for lint hygiene
+    wire unused_wb = ^{wb_sel, wb_adr[31:4]};
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
