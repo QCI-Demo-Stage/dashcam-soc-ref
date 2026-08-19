@@ -1,24 +1,29 @@
 #!/usr/bin/env python3
 """Produce a valid firmware image when no RISC-V toolchain is installed.
 
-Writes a minimal ELF-like payload as a flat hex image (sw/out/firmware.hex)
-plus a binary blob (sw/out/firmware.bin) so make sw succeeds portably.
+Emits:
+  - sw/stub/firmware_stub.hex  (committed fallback artifact)
+  - sw/out/firmware.hex        (build output, gitignored)
+  - sw/out/firmware.bin
+
+The payload matches sw/stub/stub.S: nop + infinite jal loop, plus a small
+banner/metadata prefix so the image is recognizable in $readmemh dumps.
 """
 
 from __future__ import annotations
 
 import argparse
 import struct
+import sys
 from pathlib import Path
 
 
 def build_image() -> bytes:
-    # Minimal RISC-V RV32I "program":
-    #   addi x0, x0, 0   ; nop-ish
-    #   jal  x0, 0       ; loop to self
-    # Prefixed with a magic banner so the file is recognizable.
+    # Banner + pad to 32 bytes, then RV32I words from stub.S:
+    #   addi x0, x0, 0
+    #   jal  x0, 0          ; loop to self
+    # followed by CSR/SRAM window metadata words.
     banner = b"DASHCAM_SOC_FW_STUB\x00"
-    # Pad banner to 32 bytes
     banner = banner + bytes(32 - len(banner))
     words = [
         0x00000013,  # addi x0, x0, 0
@@ -31,29 +36,61 @@ def build_image() -> bytes:
 
 
 def write_hex(path: Path, data: bytes) -> None:
-    lines: list[str] = []
-    # Verilog $readmemh-compatible: one 32-bit word per line
-    # Pad to multiple of 4
     pad = (-len(data)) % 4
     data = data + bytes(pad)
-    for i in range(0, len(data), 4):
-        word = struct.unpack_from("<I", data, i)[0]
-        lines.append(f"{word:08x}")
+    lines = [
+        f"{struct.unpack_from('<I', data, i)[0]:08x}"
+        for i in range(0, len(data), 4)
+    ]
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_bin(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--outdir", type=Path, required=True)
+    here = Path(__file__).resolve().parent
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "-o",
+        "--outdir",
+        type=Path,
+        default=here / "out",
+        help="Directory for firmware.hex / firmware.bin (default: sw/out)",
+    )
+    parser.add_argument(
+        "--stub",
+        type=Path,
+        default=here / "stub" / "firmware_stub.hex",
+        help="Path for the committed fallback stub hex",
+    )
+    parser.add_argument(
+        "--no-stub",
+        action="store_true",
+        help="Skip writing the committed stub path",
+    )
     args = parser.parse_args()
-    args.outdir.mkdir(parents=True, exist_ok=True)
+
     data = build_image()
+    args.outdir.mkdir(parents=True, exist_ok=True)
+
     bin_path = args.outdir / "firmware.bin"
     hex_path = args.outdir / "firmware.hex"
-    bin_path.write_bytes(data)
+    write_bin(bin_path, data)
     write_hex(hex_path, data)
     print(f"sw: stub image {bin_path} ({len(data)} bytes)")
     print(f"sw: stub hex   {hex_path}")
+
+    if not args.no_stub:
+        write_hex(args.stub, data)
+        print(f"sw: fallback   {args.stub}")
+
+    if hex_path.stat().st_size == 0:
+        print("error: firmware.hex is empty", file=sys.stderr)
+        return 1
     return 0
 
 

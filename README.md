@@ -17,8 +17,14 @@ make regs && make lint && make sim && make sw && make synth
 | `lint` | Verilator lint of synthesizable RTL + `AGENTS.md` freshness |
 | `sim` | Verilator smoke (`SMOKE_PASS` + PPM) |
 | `ip_sim` | Per-IP Verilator benches (cam/dma/sram/peripherals) |
-| `sw` | Firmware image (RISC-V GCC or Python stub fallback) |
+| `sw` | Firmware image → `sw/out/firmware.hex` (RISC-V GCC or stub fallback) |
 | `synth` | Yosys generic `synth -top dashcam_soc_top` |
+
+## Firmware
+
+`make sw` builds minimal RV32 firmware that programs DMA/camera/IRQ CSRs.
+With a RISC-V toolchain it compiles `sw/src/firmware.c`; otherwise it copies
+`sw/stub/firmware_stub.hex`. Details: [`docs/firmware.md`](docs/firmware.md).
 
 ## Layout
 
@@ -26,11 +32,11 @@ make regs && make lint && make sim && make sw && make synth
 - `top/rtl/` — `dashcam_soc_top`
 - `dv/sim/verilator_smoke/` — smoke harness
 - `dv/ip/<block>/` — per-IP Verilator testbenches
-- `sw/` — firmware
+- `sw/` — firmware sources, CSR headers, stub hex
 - `csv/` — register address-map source of truth (`register_spec.csv`)
 - `include/` — generated per-IP SystemRDL and Verilog CSR `define`s
 - `scripts/` — `reggen.py`, `csv_validation.py`, `gen_agent_docs.py`
-- `docs/` — register map, [`integration.md`](docs/integration.md), IP specs (`docs/ip/`)
+- `docs/` — register map, [`integration.md`](docs/integration.md), [`firmware.md`](docs/firmware.md), IP specs (`docs/ip/`)
 
 ## Hardware notes
 

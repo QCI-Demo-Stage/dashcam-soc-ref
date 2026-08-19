@@ -19,7 +19,7 @@ help:
 	@echo "  make lint   - verilator lint-only (top+leaves) + lint_report.txt"
 	@echo "  make sim    - verilator smoke (deletes stale outs first)"
 	@echo "  make ip_sim - run per-IP Verilator testbenches"
-	@echo "  make sw     - build firmware image (toolchain or Python fallback)"
+	@echo "  make sw     - build sw/out/firmware.hex (GCC or stub fallback)"
 	@echo "  make synth  - yosys generic synth -top dashcam_soc_top"
 
 # ---------------------------------------------------------------------------
@@ -108,7 +108,11 @@ ip_sim:
 	@echo "ip_sim: OK"
 
 # ---------------------------------------------------------------------------
-# sw — RISC-V toolchain if present, else Python stub-hex fallback
+# sw — RISC-V toolchain if present, else copy stub / Python stub-hex fallback
+#
+# Expected output: sw/out/firmware.hex  (also sw/out/firmware.bin)
+# Fallback source: sw/stub/firmware_stub.hex  (committed; no GCC required)
+# See docs/firmware.md for build/usage details.
 # ---------------------------------------------------------------------------
 sw:
 	$(MAKE) -C $(SW_DIR) all
