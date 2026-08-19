@@ -1,1 +1,36 @@
-# dashcam-soc-ref
+# Dashcam SoC
+
+Wishbone-based RISC-V dashcam reference SoC. Synthesis stays PDK-free; Sky130
+is collateral only.
+
+## Self-check contract
+
+From the repository root:
+
+```bash
+make regs && make lint && make sim && make sw && make synth
+```
+
+| Target | Purpose |
+|--------|---------|
+| `regs` | Generate CSR headers + register map docs |
+| `lint` | Verilator lint of synthesizable RTL + `AGENTS.md` freshness |
+| `sim` | Verilator smoke (`SMOKE_PASS` + PPM) |
+| `sw` | Firmware image (RISC-V GCC or Python stub fallback) |
+| `synth` | Yosys generic `synth -top dashcam_soc_top` |
+
+## Layout
+
+- `ips/<block>/rtl/` — IP stubs
+- `top/rtl/` — `dashcam_soc_top`
+- `dv/sim/verilator_smoke/` — smoke harness
+- `sw/` — firmware
+- `scripts/` — `reggen.py`, `gen_agent_docs.py`
+- `docs/` — generated register map
+
+## Hardware notes
+
+- Bus: Wishbone B4
+- CSR window: `0x1000_0000`
+- SRAM window: `0x2000_0000`
+- `USE_CPU`: external Wishbone master (default) or picoRV32

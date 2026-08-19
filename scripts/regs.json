@@ -1,0 +1,202 @@
+{
+  "title": "Dashcam SoC Register Map",
+  "bus": "Wishbone B4",
+  "csr_window_base": "0x10000000",
+  "sram_window_base": "0x20000000",
+  "blocks": [
+    {
+      "name": "cam",
+      "description": "Camera capture control",
+      "base": "0x10000000",
+      "registers": [
+        {
+          "name": "CTRL",
+          "offset": "0x00",
+          "access": "rw",
+          "reset": "0x00000000",
+          "description": "Capture control",
+          "fields": [
+            {"name": "ENABLE", "bits": "0", "access": "rw", "description": "Enable capture"},
+            {"name": "IRQ_EN", "bits": "1", "access": "rw", "description": "Frame-done IRQ enable"}
+          ]
+        },
+        {
+          "name": "STATUS",
+          "offset": "0x04",
+          "access": "ro",
+          "reset": "0x00000000",
+          "description": "Capture status",
+          "fields": [
+            {"name": "BUSY", "bits": "0", "access": "ro", "description": "Capture in progress"},
+            {"name": "FRAME_DONE", "bits": "1", "access": "ro", "description": "Frame complete (W1C via CTRL)"}
+          ]
+        },
+        {
+          "name": "FRAME_W",
+          "offset": "0x08",
+          "access": "rw",
+          "reset": "0x00000004",
+          "description": "Frame width in pixels",
+          "fields": [
+            {"name": "WIDTH", "bits": "15:0", "access": "rw", "description": "Pixel width"}
+          ]
+        },
+        {
+          "name": "FRAME_H",
+          "offset": "0x0C",
+          "access": "rw",
+          "reset": "0x00000004",
+          "description": "Frame height in pixels",
+          "fields": [
+            {"name": "HEIGHT", "bits": "15:0", "access": "rw", "description": "Pixel height"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dma",
+      "description": "Pixel DMA engine",
+      "base": "0x10000100",
+      "registers": [
+        {
+          "name": "CTRL",
+          "offset": "0x00",
+          "access": "rw",
+          "reset": "0x00000000",
+          "description": "DMA control",
+          "fields": [
+            {"name": "ENABLE", "bits": "0", "access": "rw", "description": "Enable DMA"},
+            {"name": "IRQ_EN", "bits": "1", "access": "rw", "description": "Transfer-done IRQ enable"}
+          ]
+        },
+        {
+          "name": "STATUS",
+          "offset": "0x04",
+          "access": "ro",
+          "reset": "0x00000000",
+          "description": "DMA status",
+          "fields": [
+            {"name": "BUSY", "bits": "0", "access": "ro", "description": "DMA active"},
+            {"name": "DONE", "bits": "1", "access": "ro", "description": "Transfer complete"}
+          ]
+        },
+        {
+          "name": "DST_ADDR",
+          "offset": "0x08",
+          "access": "rw",
+          "reset": "0x20000000",
+          "description": "Destination SRAM address",
+          "fields": [
+            {"name": "ADDR", "bits": "31:0", "access": "rw", "description": "Byte address"}
+          ]
+        },
+        {
+          "name": "LENGTH",
+          "offset": "0x0C",
+          "access": "rw",
+          "reset": "0x00000030",
+          "description": "Transfer length in bytes",
+          "fields": [
+            {"name": "BYTES", "bits": "31:0", "access": "rw", "description": "Byte count"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "irq",
+      "description": "Interrupt controller",
+      "base": "0x10000200",
+      "registers": [
+        {
+          "name": "ENABLE",
+          "offset": "0x00",
+          "access": "rw",
+          "reset": "0x00000000",
+          "description": "IRQ enable mask",
+          "fields": [
+            {"name": "CAM", "bits": "0", "access": "rw", "description": "Camera IRQ enable"},
+            {"name": "DMA", "bits": "1", "access": "rw", "description": "DMA IRQ enable"}
+          ]
+        },
+        {
+          "name": "PENDING",
+          "offset": "0x04",
+          "access": "rw",
+          "reset": "0x00000000",
+          "description": "IRQ pending (W1C)",
+          "fields": [
+            {"name": "CAM", "bits": "0", "access": "rw", "description": "Camera pending"},
+            {"name": "DMA", "bits": "1", "access": "rw", "description": "DMA pending"}
+          ]
+        },
+        {
+          "name": "STATUS",
+          "offset": "0x08",
+          "access": "ro",
+          "reset": "0x00000000",
+          "description": "Masked IRQ status",
+          "fields": [
+            {"name": "CAM", "bits": "0", "access": "ro", "description": "Camera active"},
+            {"name": "DMA", "bits": "1", "access": "ro", "description": "DMA active"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "iomux",
+      "description": "I/O multiplexer",
+      "base": "0x10000300",
+      "registers": [
+        {
+          "name": "CTRL",
+          "offset": "0x00",
+          "access": "rw",
+          "reset": "0x00000000",
+          "description": "Pad mux control",
+          "fields": [
+            {"name": "SEL", "bits": "3:0", "access": "rw", "description": "Function select"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sdspi",
+      "description": "SD-SPI controller stub",
+      "base": "0x10000400",
+      "registers": [
+        {
+          "name": "CTRL",
+          "offset": "0x00",
+          "access": "rw",
+          "reset": "0x00000000",
+          "description": "SPI control",
+          "fields": [
+            {"name": "ENABLE", "bits": "0", "access": "rw", "description": "Enable SPI"},
+            {"name": "CS_N", "bits": "1", "access": "rw", "description": "Chip select (active low)"}
+          ]
+        },
+        {
+          "name": "STATUS",
+          "offset": "0x04",
+          "access": "ro",
+          "reset": "0x00000001",
+          "description": "SPI status",
+          "fields": [
+            {"name": "IDLE", "bits": "0", "access": "ro", "description": "Controller idle"},
+            {"name": "DONE", "bits": "1", "access": "ro", "description": "Transfer done"}
+          ]
+        },
+        {
+          "name": "DATA",
+          "offset": "0x08",
+          "access": "rw",
+          "reset": "0x00000000",
+          "description": "SPI data",
+          "fields": [
+            {"name": "BYTE", "bits": "7:0", "access": "rw", "description": "Data byte"}
+          ]
+        }
+      ]
+    }
+  ]
+}
