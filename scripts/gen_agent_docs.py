@@ -52,9 +52,14 @@ def discover_modules() -> list[tuple[str, str]]:
         files.extend(sorted(root.rglob("*.sv")))
         files.extend(sorted(root.rglob("*.v")))
     for path in files:
-        # Only synthesizable RTL dirs
+        # Synthesizable RTL: classic ips/*/rtl and top/rtl trees, plus
+        # per-IP CSR modules (ips/<ip>/csr_<ip>.v) and top/address_decode.v.
         parts = path.parts
-        if "rtl" not in parts:
+        name = path.name
+        under_rtl = "rtl" in parts
+        is_csr = name.startswith("csr_") and name.endswith((".v", ".sv"))
+        is_addr_decode = name in ("address_decode.v", "address_decode.sv")
+        if not (under_rtl or is_csr or is_addr_decode):
             continue
         text = path.read_text(encoding="utf-8")
         for match in MODULE_RE.finditer(text):

@@ -22,12 +22,21 @@ help:
 	@echo "  make synth  - yosys generic synth -top dashcam_soc_top"
 
 # ---------------------------------------------------------------------------
-# regs
+# regs — run reggen.py; place SystemRDL + Verilog headers into include/
 # ---------------------------------------------------------------------------
 regs:
+	@mkdir -p $(ROOT)/include $(ROOT)/sw/include $(ROOT)/docs
 	python3 $(SCRIPTS)/csv_validation.py
 	python3 $(SCRIPTS)/reggen.py
+	@test -f $(ROOT)/include/regs_defines.vh || \
+		(echo "error: missing include/regs_defines.vh after reggen" >&2; exit 1)
+	@test -f $(ROOT)/include/cam_csr.rdl || \
+		(echo "error: missing include/*_csr.rdl after reggen" >&2; exit 1)
 	python3 $(SCRIPTS)/gen_agent_docs.py
+
+# Optional: make lint MODULE=address_decode.v  (lint a specific RTL top)
+MODULE ?=
+LINT_TOP := $(if $(MODULE),$(basename $(notdir $(MODULE))),dashcam_soc_top)
 
 # ---------------------------------------------------------------------------
 # lint — synthesizable RTL only; never lint testbenches
@@ -36,7 +45,7 @@ lint:
 	@test -n "$(RTL_SV)" || (echo "error: no RTL sources found" >&2; exit 1)
 	python3 $(SCRIPTS)/gen_agent_docs.py --check
 	verilator --lint-only -sv -Wall -Wno-fatal \
-		--top-module dashcam_soc_top \
+		--top-module $(LINT_TOP) \
 		-I$(ROOT)/ips \
 		-I$(ROOT)/include \
 		$(RTL_SV)

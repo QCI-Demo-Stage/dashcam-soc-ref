@@ -48,7 +48,13 @@ make regs && make lint && make sim && make sw && make synth
 | `soc_csr` | `ips/soc_csr/rtl/soc_csr.sv` |
 | `sram_ctrl` | `ips/sram_ctrl/rtl/sram_ctrl.sv` |
 | `wb_interconnect` | `ips/wb_interconnect/rtl/wb_interconnect.sv` |
+| `csr_cam` | `ips/cam/csr_cam.v` |
+| `csr_dma` | `ips/dma/csr_dma.v` |
+| `csr_iomux` | `ips/iomux/csr_iomux.v` |
+| `csr_irq` | `ips/irq/csr_irq.v` |
+| `csr_sdspi` | `ips/sdspi/csr_sdspi.v` |
 | `dashcam_soc_top` | `top/rtl/dashcam_soc_top.sv` |
+| `address_decode` | `top/address_decode.v` |
 
 ## Layout
 
