@@ -1,11 +1,17 @@
-// Dashcam SoC top — interface-complete stub integration
-// Wishbone B4; CSR @ 0x1000_0000; SRAM @ 0x2000_0000
+// Dashcam SoC top — integrated Wishbone B4 SoC
+// CSR window @ 0x1000_0000 (via address_decode / per-IP csr_* blocks)
+// SRAM window @ 0x2000_0000 (sram_ctrl)
 // USE_CPU=0 (default): external Wishbone master
 // USE_CPU=1: picoRV32 stub master
+// Hierarchy and interrupt map: docs/integration.md
 `timescale 1ns / 1ps
 
 module dashcam_soc_top #(
-    parameter bit USE_CPU = 1'b0
+    parameter bit USE_CPU           = 1'b0,
+    parameter int CAM_FIFO_DEPTH    = 8,
+    parameter int DMA_FIFO_DEPTH    = 4,
+    parameter int SRAM_DEPTH_WORDS  = 1024,
+    parameter int SRAM_LATENCY      = 0
 ) (
     input  logic        clk,
     input  logic        rst_n_async,
@@ -57,7 +63,7 @@ module dashcam_soc_top #(
     logic [3:0]  dma_sel;
     logic [31:0] dma_adr, dma_dat_w, dma_dat_r;
 
-    // Interconnect slaves
+    // Interconnect slaves: s0 = CSR, s1 = SRAM
     logic        s0_cyc, s0_stb, s0_we, s0_ack;
     logic [3:0]  s0_sel;
     logic [31:0] s0_adr, s0_dat_w, s0_dat_r;
@@ -65,7 +71,7 @@ module dashcam_soc_top #(
     logic [3:0]  s1_sel;
     logic [31:0] s1_adr, s1_dat_w, s1_dat_r;
 
-    // CSR control wires
+    // CSR control wires (soc_csr → address_decode → csr_*)
     logic        cam_enable, cam_busy, cam_frame_done;
     logic [15:0] cam_frame_w, cam_frame_h;
     logic        dma_enable, dma_busy, dma_done;
@@ -75,13 +81,16 @@ module dashcam_soc_top #(
     logic        sdspi_enable, sdspi_cs_n, sdspi_idle, sdspi_done;
     logic [7:0]  sdspi_data_w, sdspi_data_r;
 
-    // Pixel stream
+    // Pixel stream (cam_capture → dma_engine)
     logic        pix_valid, pix_ready;
     logic [23:0] pix_rgb;
 
     // IOMUX function side
     logic [7:0]  func_in, func_out, func_oe;
 
+    // -------------------------------------------------------------------------
+    // Reset + optional CPU master
+    // -------------------------------------------------------------------------
     rst_sync u_rst (
         .clk         (clk),
         .rst_n_async (rst_n_async),
@@ -102,7 +111,7 @@ module dashcam_soc_top #(
         .wb_ack  (cpu_ack)
     );
 
-    // Master select: external vs CPU; DMA shares bus via simple priority (DMA wins when active)
+    // Master select: DMA wins when active; else CPU (USE_CPU) or external host
     logic use_dma;
     assign use_dma = dma_cyc;
 
@@ -138,6 +147,9 @@ module dashcam_soc_top #(
     assign ext_ack   = (!USE_CPU && !use_dma) ? m_ack : 1'b0;
     assign ext_dat_r = m_dat_r;
 
+    // -------------------------------------------------------------------------
+    // Wishbone interconnect (CSR @ 0x1xxx_xxxx, SRAM @ 0x2xxx_xxxx)
+    // -------------------------------------------------------------------------
     wb_interconnect u_wb (
         .clk     (clk),
         .rst_n   (rst_n),
@@ -167,6 +179,7 @@ module dashcam_soc_top #(
         .s1_ack  (s1_ack)
     );
 
+    // soc_csr wraps address_decode → csr_cam / csr_dma / csr_irq / csr_iomux / csr_sdspi
     soc_csr u_csr (
         .clk              (clk),
         .rst_n            (rst_n),
@@ -200,7 +213,12 @@ module dashcam_soc_top #(
         .sdspi_done       (sdspi_done)
     );
 
-    cam_capture u_cam (
+    // -------------------------------------------------------------------------
+    // Datapath IP: camera capture → DMA → SRAM
+    // -------------------------------------------------------------------------
+    cam_capture #(
+        .FIFO_DEPTH(CAM_FIFO_DEPTH)
+    ) u_cam (
         .clk           (clk),
         .rst_n         (rst_n),
         .enable        (cam_enable),
@@ -217,7 +235,9 @@ module dashcam_soc_top #(
         .pix_ready     (pix_ready)
     );
 
-    dma_engine u_dma (
+    dma_engine #(
+        .FIFO_DEPTH(DMA_FIFO_DEPTH)
+    ) u_dma (
         .clk      (clk),
         .rst_n    (rst_n),
         .enable   (dma_enable),
@@ -238,7 +258,10 @@ module dashcam_soc_top #(
         .wb_ack   (dma_ack)
     );
 
-    sram_ctrl u_sram (
+    sram_ctrl #(
+        .DEPTH_WORDS(SRAM_DEPTH_WORDS),
+        .LATENCY    (SRAM_LATENCY)
+    ) u_sram (
         .clk     (clk),
         .rst_n   (rst_n),
         .wb_cyc  (s1_cyc),
@@ -251,18 +274,25 @@ module dashcam_soc_top #(
         .wb_ack  (s1_ack)
     );
 
+    // -------------------------------------------------------------------------
+    // Interrupt routing: cam / dma / sdspi → irq_ctrl → irq_out
+    // Vector: bit0=CAM, bit1=DMA, bit2=SDSPI (see docs/integration.md)
+    // -------------------------------------------------------------------------
     irq_ctrl u_irq (
         .clk           (clk),
         .rst_n         (rst_n),
         .cam_irq       (cam_frame_done),
         .dma_irq       (dma_done),
+        .sdspi_irq     (sdspi_done),
         .irq_enable    (irq_enable),
         .pending_clear (irq_pending_clear),
         .irq_pending   (irq_pending),
         .irq_out       (irq_out)
     );
 
-    // SDSPI / IOMUX
+    // -------------------------------------------------------------------------
+    // Peripheral stubs: IOMUX + SD-SPI (CSR sideband via address_decode)
+    // -------------------------------------------------------------------------
     assign func_out = 8'h00;
     assign func_oe  = 8'h00;
 

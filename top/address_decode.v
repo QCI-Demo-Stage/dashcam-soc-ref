@@ -1,5 +1,7 @@
 // Central Wishbone CSR address decode
 // Routes CSR window sub-blocks to per-IP csr_* modules.
+// Address ranges are disjoint 256-byte apertures under 0x1000_0000
+// (OpenTitan-style hierarchical block bases on a shared bus map).
 `timescale 1ns / 1ps
 `include "regs_defines.vh"
 
@@ -45,12 +47,33 @@ module address_decode (
     input  logic        sdspi_idle,
     input  logic        sdspi_done
 );
-    // Block selects from absolute address (CSR bases from regs_defines.vh)
-    // cam   @ 0x10000000 → adr[11:8] == 4'h0
-    // dma   @ 0x10000100 → adr[11:8] == 4'h1
-    // irq   @ 0x10000200 → adr[11:8] == 4'h2
-    // iomux @ 0x10000300 → adr[11:8] == 4'h3
-    // sdspi @ 0x10000400 → adr[11:8] == 4'h4
+    // Disjoint CSR apertures (no overlaps — each uses adr[11:8] uniquely):
+    //   cam   @ 0x10000000 → 4'h0  (CAM_CTRL)
+    //   dma   @ 0x10000100 → 4'h1  (DMA_CTRL)
+    //   irq   @ 0x10000200 → 4'h2  (IRQ_ENABLE)
+    //   iomux @ 0x10000300 → 4'h3  (IOMUX_CTRL)
+    //   sdspi @ 0x10000400 → 4'h4  (SDSPI_CTRL)
+    // Bases match include/regs_defines.vh (C-style 0x macros are SW/docs only).
+    localparam logic [3:0] SEL_CAM   = 4'h0;
+    localparam logic [3:0] SEL_DMA   = 4'h1;
+    localparam logic [3:0] SEL_IRQ   = 4'h2;
+    localparam logic [3:0] SEL_IOMUX = 4'h3;
+    localparam logic [3:0] SEL_SDSPI = 4'h4;
+
+    // Elaboration-time uniqueness check (all SEL_* must differ)
+    // verilator lint_off UNUSED
+    localparam bit SEL_UNIQUE =
+        (SEL_CAM != SEL_DMA) && (SEL_CAM != SEL_IRQ) && (SEL_CAM != SEL_IOMUX) &&
+        (SEL_CAM != SEL_SDSPI) && (SEL_DMA != SEL_IRQ) && (SEL_DMA != SEL_IOMUX) &&
+        (SEL_DMA != SEL_SDSPI) && (SEL_IRQ != SEL_IOMUX) && (SEL_IRQ != SEL_SDSPI) &&
+        (SEL_IOMUX != SEL_SDSPI);
+    // verilator lint_on UNUSED
+    generate
+        if (!SEL_UNIQUE) begin : g_sel_overlap
+            initial $error("address_decode: overlapping CSR select nibble(s)");
+        end
+    endgenerate
+
     logic sel_cam;
     logic sel_dma;
     logic sel_irq;
@@ -75,11 +98,11 @@ module address_decode (
         sel_iomux = 1'b0;
         sel_sdspi = 1'b0;
         unique case (wb_adr[11:8])
-            4'h0: sel_cam   = 1'b1;
-            4'h1: sel_dma   = 1'b1;
-            4'h2: sel_irq   = 1'b1;
-            4'h3: sel_iomux = 1'b1;
-            4'h4: sel_sdspi = 1'b1;
+            SEL_CAM:   sel_cam   = 1'b1;
+            SEL_DMA:   sel_dma   = 1'b1;
+            SEL_IRQ:   sel_irq   = 1'b1;
+            SEL_IOMUX: sel_iomux = 1'b1;
+            SEL_SDSPI: sel_sdspi = 1'b1;
             default: ;
         endcase
     end
