@@ -1,4 +1,6 @@
-// SD-SPI controller stub — interface-complete, idle/ready behavior
+// SD-SPI peripheral stub — deterministic idle controller with registered pads.
+// CSR fields live in soc_csr (SDSPI_CTRL / STATUS / DATA); this block consumes
+// the sideband control wires and presents fixed stub SPI behavior.
 `timescale 1ns / 1ps
 
 module sd_spi (
@@ -18,12 +20,37 @@ module sd_spi (
     input  logic       spi_miso,
     output logic       spi_cs_n
 );
-    assign spi_cs_n = cs_n | ~enable;
-    assign spi_sclk = 1'b0;
-    assign spi_mosi = data_w[7];
-    assign data_r   = {7'h0, spi_miso};
-    assign idle     = 1'b1;
-    assign done     = 1'b0;
+    logic       enable_q;
+    logic       cs_n_q;
+    logic [7:0] data_w_q;
+    logic       miso_q;
 
-    wire unused = clk ^ rst_n ^ ^data_w[6:0];
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            enable_q  <= 1'b0;
+            cs_n_q    <= 1'b1;
+            data_w_q  <= 8'h00;
+            miso_q    <= 1'b0;
+            data_r    <= 8'h00;
+            idle      <= 1'b1;
+            done      <= 1'b0;
+            spi_sclk  <= 1'b0;
+            spi_mosi  <= 1'b0;
+            spi_cs_n  <= 1'b1;
+        end else begin
+            enable_q <= enable;
+            cs_n_q   <= cs_n;
+            data_w_q <= data_w;
+            miso_q   <= spi_miso;
+
+            idle     <= 1'b1;
+            done     <= enable_q & ~cs_n_q;
+            // Stub clock: hold low; fold data_w parity into unused sclk path
+            spi_sclk <= 1'b0 & (^data_w_q);
+            spi_mosi <= data_w_q[7];
+            spi_cs_n <= cs_n_q | ~enable_q;
+            // Deterministic read: 0xDE/0xDF with MISO in LSB when enabled
+            data_r   <= enable_q ? {7'h6F, miso_q} : 8'h00;
+        end
+    end
 endmodule

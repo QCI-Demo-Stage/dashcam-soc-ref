@@ -1,5 +1,6 @@
 out/
 dv/sim/verilator_smoke/out/
+dv/ip/*/out/
 sw/out/
 *.vcd
 *.fst

@@ -11,13 +11,14 @@ SW_DIR    := $(ROOT)/sw
 # Synthesizable RTL only (never testbenches)
 RTL_SV := $(shell find $(ROOT)/ips $(ROOT)/top -type f \( -name '*.sv' -o -name '*.v' \) | sort)
 
-.PHONY: regs lint sim sw synth clean help
+.PHONY: regs lint sim ip_sim sw synth clean help
 
 help:
 	@echo "Dashcam SoC self-check gates:"
 	@echo "  make regs   - generate register-map collateral"
 	@echo "  make lint   - verilator lint-only + AGENTS.md freshness"
 	@echo "  make sim    - verilator smoke (deletes stale outs first)"
+	@echo "  make ip_sim - run per-IP Verilator testbenches"
 	@echo "  make sw     - build firmware image (toolchain or Python fallback)"
 	@echo "  make synth  - yosys generic synth -top dashcam_soc_top"
 
@@ -64,6 +65,18 @@ sim:
 	@echo "sim: OK (SMOKE_PASS + frame_0000.ppm)"
 
 # ---------------------------------------------------------------------------
+# ip_sim — per-IP directed/random Verilator benches (does not replace smoke)
+# ---------------------------------------------------------------------------
+IP_TBS := cam_capture dma_engine sram_ctrl sd_spi iomux rst_sync wb_periph_stub
+
+ip_sim:
+	@for d in $(IP_TBS); do \
+		echo "=== ip_sim $$d ==="; \
+		$(MAKE) -C $(ROOT)/dv/ip/$$d run ROOT=$(ROOT) || exit 1; \
+	done
+	@echo "ip_sim: OK"
+
+# ---------------------------------------------------------------------------
 # sw — RISC-V toolchain if present, else Python stub-hex fallback
 # ---------------------------------------------------------------------------
 sw:
@@ -83,4 +96,5 @@ synth:
 clean:
 	rm -rf $(OUT) $(SMOKE_OUT)
 	$(MAKE) -C $(SMOKE_DIR) clean ROOT=$(ROOT)
+	@for d in $(IP_TBS); do $(MAKE) -C $(ROOT)/dv/ip/$$d clean ROOT=$(ROOT); done
 	$(MAKE) -C $(SW_DIR) clean
