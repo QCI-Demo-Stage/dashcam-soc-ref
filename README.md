@@ -30,7 +30,7 @@ make regs && make lint && make sim && make sw && make synth
 - `csv/` — register address-map source of truth (`register_spec.csv`)
 - `include/` — generated per-IP SystemRDL and Verilog CSR `define`s
 - `scripts/` — `reggen.py`, `csv_validation.py`, `gen_agent_docs.py`
-- `docs/` — register map (Markdown + SystemRDL) + IP interface specs (`docs/ip/`)
+- `docs/` — register map, [`integration.md`](docs/integration.md), IP specs (`docs/ip/`)
 
 ## Hardware notes
 
