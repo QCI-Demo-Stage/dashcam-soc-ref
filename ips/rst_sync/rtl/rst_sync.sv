@@ -1,5 +1,4 @@
-// Reset synchronizer (stub — interface-complete)
-// Active-low async reset in, synchronized active-low reset out.
+// Reset synchronizer — 2-flop async-assert / sync-deassert active-low reset.
 `timescale 1ns / 1ps
 
 module rst_sync (
@@ -11,11 +10,11 @@ module rst_sync (
 
     always_ff @(posedge clk or negedge rst_n_async) begin
         if (!rst_n_async) begin
-            r0   <= 1'b0;
-            r1   <= 1'b0;
+            r0 <= 1'b0;
+            r1 <= 1'b0;
         end else begin
-            r0   <= 1'b1;
-            r1   <= r0;
+            r0 <= 1'b1;
+            r1 <= r0;
         end
     end
 
