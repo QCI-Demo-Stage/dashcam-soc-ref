@@ -52,9 +52,14 @@ def discover_modules() -> list[tuple[str, str]]:
         files.extend(sorted(root.rglob("*.sv")))
         files.extend(sorted(root.rglob("*.v")))
     for path in files:
-        # Only synthesizable RTL dirs
+        # Synthesizable RTL: classic ips/*/rtl and top/rtl trees, plus
+        # per-IP CSR modules (ips/<ip>/csr_<ip>.v) and top/address_decode.v.
         parts = path.parts
-        if "rtl" not in parts:
+        name = path.name
+        under_rtl = "rtl" in parts
+        is_csr = name.startswith("csr_") and name.endswith((".v", ".sv"))
+        is_addr_decode = name in ("address_decode.v", "address_decode.sv")
+        if not (under_rtl or is_csr or is_addr_decode):
             continue
         text = path.read_text(encoding="utf-8")
         for match in MODULE_RE.finditer(text):
@@ -123,8 +128,10 @@ def render(targets: list[str], modules: list[tuple[str, str]]) -> str:
     lines.append("- `top/rtl/` — chip top")
     lines.append("- `dv/sim/verilator_smoke/` — smoke harness")
     lines.append("- `sw/` — firmware")
-    lines.append("- `scripts/` — generators (`reggen.py`, `gen_agent_docs.py`)")
-    lines.append("- `docs/` — prose / generated register map")
+    lines.append("- `csv/` — register address-map source of truth (`register_spec.csv`)")
+    lines.append("- `include/` — generated SystemRDL (`*_csr.rdl`) and Verilog CSR defines")
+    lines.append("- `scripts/` — generators (`reggen.py`, `csv_validation.py`, `gen_agent_docs.py`)")
+    lines.append("- `docs/` — prose / generated register map (Markdown + SystemRDL)")
     lines.append("")
     return "\n".join(lines)
 
