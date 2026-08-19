@@ -1,0 +1,4 @@
+{
+  "name": "dashcam-soc",
+  "install": "sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq verilator yosys iverilog make g++ python3"
+}

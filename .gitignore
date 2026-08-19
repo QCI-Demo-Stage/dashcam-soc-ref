@@ -1,0 +1,8 @@
+out/
+dv/sim/verilator_smoke/out/
+sw/out/
+*.vcd
+*.fst
+__pycache__/
+*.pyc
+.DS_Store
