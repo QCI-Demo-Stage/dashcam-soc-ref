@@ -50,7 +50,13 @@ make regs && make lint && make sim && make sw && make synth
 | `sram_ctrl` | `ips/sram_ctrl/rtl/sram_ctrl.sv` |
 | `wb_interconnect` | `ips/wb_interconnect/rtl/wb_interconnect.sv` |
 | `wb_periph_stub` | `ips/wb_periph_stub/rtl/wb_periph_stub.sv` |
+| `csr_cam` | `ips/cam/csr_cam.v` |
+| `csr_dma` | `ips/dma/csr_dma.v` |
+| `csr_iomux` | `ips/iomux/csr_iomux.v` |
+| `csr_irq` | `ips/irq/csr_irq.v` |
+| `csr_sdspi` | `ips/sdspi/csr_sdspi.v` |
 | `dashcam_soc_top` | `top/rtl/dashcam_soc_top.sv` |
+| `address_decode` | `top/address_decode.v` |
 
 ## Layout
 
@@ -58,5 +64,7 @@ make regs && make lint && make sim && make sw && make synth
 - `top/rtl/` — chip top
 - `dv/sim/verilator_smoke/` — smoke harness
 - `sw/` — firmware
-- `scripts/` — generators (`reggen.py`, `gen_agent_docs.py`)
-- `docs/` — prose / generated register map
+- `csv/` — register address-map source of truth (`register_spec.csv`)
+- `include/` — generated SystemRDL (`*_csr.rdl`) and Verilog CSR defines
+- `scripts/` — generators (`reggen.py`, `csv_validation.py`, `gen_agent_docs.py`)
+- `docs/` — prose / generated register map (Markdown + SystemRDL)

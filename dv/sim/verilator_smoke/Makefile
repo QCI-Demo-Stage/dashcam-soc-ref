@@ -16,6 +16,7 @@ $(BIN): $(TB_SV) $(RTL_SV)
 	mkdir -p $(OUT)
 	verilator --binary --timing -sv -Wall -Wno-fatal \
 		--top-module tb_verilator_smoke \
+		-I$(ROOT)/include \
 		-Mdir $(OBJ_DIR) \
 		-o $(notdir $(BIN)) \
 		$(TB_SV) $(RTL_SV)
