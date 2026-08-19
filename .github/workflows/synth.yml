@@ -1,0 +1,40 @@
+# GitHub Actions — PDK-free Yosys synthesis + gate-count gate (<= 15k)
+name: synth
+
+on:
+  push:
+    branches: [main, "tymeline-ae**"]
+  pull_request:
+
+jobs:
+  yosys-synth:
+    name: Yosys PDK-free synth (<=15k gates)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Yosys
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yosys
+
+      - name: Run Yosys synthesis script
+        run: yosys -s synth.tcl
+
+      - name: Capture synthesis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synth-reports
+          path: |
+            synth/stat.rpt
+            synth/area_gates.rpt
+            synth/stat_hierarchy.rpt
+            synth/timing_constraints.rpt
+            synth/dashcam_soc_top.netlist.v
+            synth/dashcam_soc_top.mapped.v
+          if-no-files-found: warn
+
+      - name: Assert gate count <= 15000
+        run: python3 scripts/check_gate_count.py synth/stat.rpt --limit 15000
