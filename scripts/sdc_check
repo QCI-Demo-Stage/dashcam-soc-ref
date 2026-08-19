@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""Lightweight SDC syntax validator for Dashcam SoC collateral.
+
+Usage:
+  sdc_check <file.sdc>
+  python3 scripts/sdc_check <file.sdc>
+
+Exits 0 when the file parses with zero syntax errors; non-zero otherwise.
+Does not require a PDK, liberty files, or a design netlist — command-form
+and bracket balance only (suitable for CI collateral checks).
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+KNOWN_COMMANDS = {
+    "create_clock",
+    "create_generated_clock",
+    "set_clock_groups",
+    "set_clock_latency",
+    "set_clock_uncertainty",
+    "set_clock_transition",
+    "set_false_path",
+    "set_multicycle_path",
+    "set_disable_timing",
+    "set_input_delay",
+    "set_output_delay",
+    "set_input_transition",
+    "set_driving_cell",
+    "set_drive",
+    "set_load",
+    "set_max_delay",
+    "set_min_delay",
+    "set_max_fanout",
+    "set_max_transition",
+    "set_max_capacitance",
+    "set_timing_derate",
+    "set_case_analysis",
+    "set_ideal_network",
+    "set_propagated_clock",
+    "group_path",
+    "set_units",
+    "set_operating_conditions",
+    "set_annotated_delay",
+    "set_data_check",
+    "set_max_time_borrow",
+    "set_resistance",
+    "set_wire_load_model",
+    "set_wire_load_mode",
+    "set_wire_load_selection_group",
+    "all_clocks",
+    "all_inputs",
+    "all_outputs",
+    "all_registers",
+    "get_ports",
+    "get_pins",
+    "get_nets",
+    "get_cells",
+    "get_clocks",
+    "get_lib_cells",
+    "current_design",
+}
+
+# Commands that may appear as statements (top-level) in collateral SDC.
+TOP_LEVEL = {
+    "create_clock",
+    "create_generated_clock",
+    "set_clock_groups",
+    "set_clock_latency",
+    "set_clock_uncertainty",
+    "set_clock_transition",
+    "set_false_path",
+    "set_multicycle_path",
+    "set_disable_timing",
+    "set_input_delay",
+    "set_output_delay",
+    "set_input_transition",
+    "set_driving_cell",
+    "set_drive",
+    "set_load",
+    "set_max_delay",
+    "set_min_delay",
+    "set_max_fanout",
+    "set_max_transition",
+    "set_max_capacitance",
+    "set_timing_derate",
+    "set_case_analysis",
+    "set_ideal_network",
+    "set_propagated_clock",
+    "group_path",
+    "set_units",
+    "set_operating_conditions",
+}
+
+
+def strip_comments(text: str) -> str:
+    out: list[str] = []
+    for line in text.splitlines():
+        in_str = False
+        buf: list[str] = []
+        i = 0
+        while i < len(line):
+            ch = line[i]
+            if ch == '"' and (i == 0 or line[i - 1] != "\\"):
+                in_str = not in_str
+                buf.append(ch)
+            elif ch == "#" and not in_str:
+                break
+            else:
+                buf.append(ch)
+            i += 1
+        out.append("".join(buf))
+    return "\n".join(out)
+
+
+def check_balance(text: str, path: str, errors: list[str]) -> None:
+    pairs = {"[": "]", "{": "}", "(": ")"}
+    stack: list[tuple[str, int, int]] = []
+    line_no = 1
+    col = 0
+    in_str = False
+    for ch in text:
+        if ch == "\n":
+            line_no += 1
+            col = 0
+            continue
+        col += 1
+        if ch == '"' and True:
+            # toggle on unescaped quote — approximate
+            in_str = not in_str
+            continue
+        if in_str:
+            continue
+        if ch in pairs:
+            stack.append((ch, line_no, col))
+        elif ch in pairs.values():
+            if not stack:
+                errors.append(f"{path}:{line_no}:{col}: unmatched closing '{ch}'")
+                continue
+            open_ch, ol, oc = stack.pop()
+            if pairs[open_ch] != ch:
+                errors.append(
+                    f"{path}:{line_no}:{col}: mismatched '{open_ch}' "
+                    f"(opened at {ol}:{oc}) closed by '{ch}'"
+                )
+    for open_ch, ol, oc in stack:
+        errors.append(f"{path}:{ol}:{oc}: unclosed '{open_ch}'")
+
+
+def split_statements(text: str) -> list[tuple[int, str]]:
+    """Split on newlines into logical statements (backslash continuation)."""
+    statements: list[tuple[int, str]] = []
+    buf = ""
+    start_line = 1
+    lines = text.splitlines()
+    for idx, line in enumerate(lines, start=1):
+        stripped = line.rstrip()
+        if not buf:
+            start_line = idx
+        if stripped.endswith("\\"):
+            buf += stripped[:-1] + " "
+            continue
+        buf += stripped
+        if buf.strip():
+            statements.append((start_line, buf.strip()))
+        buf = ""
+    if buf.strip():
+        statements.append((start_line, buf.strip()))
+    return statements
+
+
+def first_token(stmt: str) -> str:
+    m = re.match(r"([A-Za-z_][A-Za-z0-9_]*)", stmt)
+    return m.group(1) if m else ""
+
+
+def validate_create_clock(stmt: str, path: str, line: int, errors: list[str]) -> None:
+    if "-period" not in stmt:
+        errors.append(f"{path}:{line}: create_clock missing -period")
+    if not re.search(r"-period\s+[0-9]+(\.[0-9]+)?", stmt):
+        errors.append(f"{path}:{line}: create_clock -period value must be numeric")
+
+
+def validate_file(path: Path) -> list[str]:
+    errors: list[str] = []
+    if not path.is_file():
+        return [f"error: file not found: {path}"]
+    raw = path.read_text(encoding="utf-8")
+    if not raw.strip():
+        return [f"{path}: empty SDC file"]
+    text = strip_comments(raw)
+    check_balance(text, str(path), errors)
+
+    saw_create_clock = False
+    for line_no, stmt in split_statements(text):
+        cmd = first_token(stmt)
+        if not cmd:
+            errors.append(f"{path}:{line_no}: cannot parse statement: {stmt[:60]}")
+            continue
+        if cmd not in TOP_LEVEL:
+            errors.append(
+                f"{path}:{line_no}: unknown or unsupported top-level SDC command '{cmd}'"
+            )
+            continue
+        if cmd == "create_clock":
+            saw_create_clock = True
+            validate_create_clock(stmt, str(path), line_no, errors)
+        # Nested object commands inside [...] are not re-validated as top-level.
+
+    if not saw_create_clock:
+        errors.append(f"{path}: no create_clock found (at least one required)")
+
+    # Nested get_* / all_* command names inside brackets should be known.
+    for m in re.finditer(r"\[(\s*)([A-Za-z_][A-Za-z0-9_]*)", text):
+        inner = m.group(2)
+        if inner not in KNOWN_COMMANDS and inner not in TOP_LEVEL:
+            # Allow expr-like unknowns only if clearly not SDC — flag unknowns.
+            errors.append(
+                f"{path}: unknown object/command inside brackets: '{inner}'"
+            )
+
+    return errors
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2 or argv[1] in {"-h", "--help"}:
+        print("Usage: sdc_check <file.sdc>", file=sys.stderr)
+        return 2
+    path = Path(argv[1])
+    errors = validate_file(path)
+    if errors:
+        print(f"sdc_check: FAIL ({len(errors)} error(s))", file=sys.stderr)
+        for e in errors:
+            print(e, file=sys.stderr)
+        return 1
+    print(f"sdc_check: OK (0 parsing errors) — {path}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

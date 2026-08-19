@@ -1,0 +1,9 @@
+=== Dashcam SoC SDC validation CI log ===
+timestamp: 2026-08-19T13:46:14Z
+command: sdc_check physical/constraints.sdc
+sdc_check: scripts/sdc_check
+---
+sdc_check: OK (0 parsing errors) — physical/constraints.sdc
+---
+exit_code: 0
+result: PASS (0 parsing errors)
