@@ -123,8 +123,9 @@ def render(targets: list[str], modules: list[tuple[str, str]]) -> str:
     lines.append("- `top/rtl/` — chip top")
     lines.append("- `dv/sim/verilator_smoke/` — smoke harness")
     lines.append("- `sw/` — firmware")
-    lines.append("- `scripts/` — generators (`reggen.py`, `gen_agent_docs.py`)")
-    lines.append("- `docs/` — prose / generated register map")
+    lines.append("- `csv/` — register address-map source of truth (`register_spec.csv`)")
+    lines.append("- `scripts/` — generators (`reggen.py`, `csv_validation.py`, `gen_agent_docs.py`)")
+    lines.append("- `docs/` — prose / generated register map (Markdown + SystemRDL)")
     lines.append("")
     return "\n".join(lines)
 

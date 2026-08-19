@@ -25,6 +25,7 @@ help:
 # regs
 # ---------------------------------------------------------------------------
 regs:
+	python3 $(SCRIPTS)/csv_validation.py
 	python3 $(SCRIPTS)/reggen.py
 	python3 $(SCRIPTS)/gen_agent_docs.py
 

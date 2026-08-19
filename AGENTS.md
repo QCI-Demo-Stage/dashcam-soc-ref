@@ -56,5 +56,6 @@ make regs && make lint && make sim && make sw && make synth
 - `top/rtl/` — chip top
 - `dv/sim/verilator_smoke/` — smoke harness
 - `sw/` — firmware
-- `scripts/` — generators (`reggen.py`, `gen_agent_docs.py`)
-- `docs/` — prose / generated register map
+- `csv/` — register address-map source of truth (`register_spec.csv`)
+- `scripts/` — generators (`reggen.py`, `csv_validation.py`, `gen_agent_docs.py`)
+- `docs/` — prose / generated register map (Markdown + SystemRDL)
