@@ -1,0 +1,137 @@
+# =============================================================================
+# Dashcam SoC — IEEE 1801 (UPF) power intent
+# Top: dashcam_soc_top
+# PDK collateral: sky130A (not required for PDK-free make synth)
+# Version: 1.0.0
+# =============================================================================
+
+upf_version 2.0
+
+# -----------------------------------------------------------------------------
+# Power domains: core logic vs I/O pad ring
+# -----------------------------------------------------------------------------
+create_power_domain PD_CORE -include_scope
+create_power_domain PD_IO \
+  -elements { \
+    pad_in[*] pad_out[*] pad_oe[*] \
+    cam_vsync cam_href cam_data[*] cam_pclk_valid \
+    spi_sclk spi_mosi spi_miso spi_cs_n \
+    irq_out \
+  }
+
+# -----------------------------------------------------------------------------
+# Supply ports / nets
+# -----------------------------------------------------------------------------
+create_supply_port VDD  -direction in
+create_supply_port VSS  -direction in
+create_supply_port VDDP -direction in
+
+create_supply_net VDD
+create_supply_net VSS
+create_supply_net VDDP
+
+connect_supply_net VDD  -ports {VDD}
+connect_supply_net VSS  -ports {VSS}
+connect_supply_net VDDP -ports {VDDP}
+
+set_domain_supply_net PD_CORE \
+  -primary_power_net VDD \
+  -primary_ground_net VSS
+
+set_domain_supply_net PD_IO \
+  -primary_power_net VDDP \
+  -primary_ground_net VSS
+
+# -----------------------------------------------------------------------------
+# Power states
+# -----------------------------------------------------------------------------
+add_power_state PD_CORE \
+  -state {ON  -supply_expr {VDD == FULL_ON && VSS == FULL_ON}} \
+  -state {OFF -supply_expr {VDD == OFF && VSS == FULL_ON}} \
+  -state {RET -supply_expr {VDD == FULL_ON && VSS == FULL_ON}}
+
+add_power_state PD_IO \
+  -state {ON  -supply_expr {VDDP == FULL_ON && VSS == FULL_ON}} \
+  -state {OFF -supply_expr {VDDP == OFF && VSS == FULL_ON}}
+
+create_pst SoC_PST -supplies {VDD VDDP VSS}
+add_pst_state ACTIVE  -pst SoC_PST -state {FULL_ON FULL_ON FULL_ON}
+add_pst_state IO_ONLY -pst SoC_PST -state {OFF FULL_ON FULL_ON}
+add_pst_state SLEEP   -pst SoC_PST -state {OFF OFF FULL_ON}
+
+# -----------------------------------------------------------------------------
+# Isolation for signals crossing PD_CORE <-> PD_IO
+# Sky130 HD low-power isolation cells
+# -----------------------------------------------------------------------------
+set_isolation iso_core_to_io \
+  -domain PD_IO \
+  -applies_to inputs \
+  -clamp_value 0 \
+  -isolation_signal iso_en_core_to_io \
+  -isolation_sense high \
+  -location self
+
+set_isolation_control iso_core_to_io \
+  -domain PD_IO \
+  -isolation_signal iso_en_core_to_io \
+  -isolation_sense high \
+  -location self
+
+map_isolation_cell iso_core_to_io \
+  -lib_cells { \
+    sky130_fd_sc_hd__lpflow_isobufsrc_1 \
+    sky130_fd_sc_hd__lpflow_isobufsrckapwr_16 \
+    sky130_fd_sc_hd__lpflow_inputisolatch_x4 \
+  }
+
+set_isolation iso_io_to_core \
+  -domain PD_CORE \
+  -applies_to inputs \
+  -clamp_value 0 \
+  -isolation_signal iso_en_io_to_core \
+  -isolation_sense high \
+  -location parent
+
+map_isolation_cell iso_io_to_core \
+  -lib_cells { \
+    sky130_fd_sc_hd__lpflow_isobufsrc_1 \
+    sky130_fd_sc_hd__lpflow_inputisolatch_x4 \
+  }
+
+# -----------------------------------------------------------------------------
+# Retention for CSR / IRQ state that must survive PD_CORE sleep
+# -----------------------------------------------------------------------------
+set_retention ret_csr \
+  -domain PD_CORE \
+  -retention_power_net VDD \
+  -retention_ground_net VSS \
+  -elements { \
+    u_soc_csr \
+    u_irq \
+  }
+
+set_retention_control ret_csr \
+  -domain PD_CORE \
+  -save_signal {ret_save high} \
+  -restore_signal {ret_restore high}
+
+map_retention_cell ret_csr \
+  -lib_cells { \
+    sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_1 \
+    sky130_fd_sc_hd__lpflow_lsbuf_lh_hl_isowell_tap_1 \
+  }
+
+# Level shifters between core (1.8 V) and pad (VDDP) domains
+set_level_shifter ls_core_io \
+  -domain PD_IO \
+  -applies_to inputs \
+  -rule both \
+  -location self
+
+map_level_shifter_cell ls_core_io \
+  -lib_cells { \
+    sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_1 \
+    sky130_fd_sc_hd__lpflow_lsbuf_lh_hl_isowell_tap_1 \
+  }
+
+# End of physical/power.upf
