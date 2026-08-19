@@ -1,0 +1,48 @@
+# GitHub Actions — SDC collateral syntax check (no PDK / no PnR)
+name: sdc-check
+
+on:
+  push:
+    branches: [main, "tymeline-ae**"]
+    paths:
+      - "physical/constraints.sdc"
+      - "scripts/sdc_check"
+      - ".github/workflows/sdc-check.yml"
+  pull_request:
+    paths:
+      - "physical/constraints.sdc"
+      - "scripts/sdc_check"
+      - ".github/workflows/sdc-check.yml"
+
+jobs:
+  sdc-syntax:
+    name: Validate physical/constraints.sdc
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run sdc_check
+        run: |
+          chmod +x scripts/sdc_check
+          export PATH="$PWD/scripts:$PATH"
+          {
+            echo "=== Dashcam SoC SDC validation CI log ==="
+            echo "timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "command: sdc_check physical/constraints.sdc"
+            echo "---"
+            sdc_check physical/constraints.sdc
+            ec=$?
+            echo "---"
+            echo "exit_code: $ec"
+            if [ $ec -eq 0 ]; then echo "result: PASS (0 parsing errors)"; else echo "result: FAIL"; fi
+            exit $ec
+          } | tee physical/ci_sdc_check.log
+
+      - name: Upload CI log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdc-check-log
+          path: physical/ci_sdc_check.log
+          if-no-files-found: warn
