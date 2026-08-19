@@ -20,7 +20,7 @@ help:
 	@echo "  make sim    - verilator smoke (deletes stale outs first)"
 	@echo "  make ip_sim - run per-IP Verilator testbenches"
 	@echo "  make sw     - build sw/out/firmware.hex (GCC or stub fallback)"
-	@echo "  make synth  - yosys generic synth -top dashcam_soc_top"
+	@echo "  make synth  - PDK-free Yosys (synth.tcl + synth_constraints.sdc)"
 
 # ---------------------------------------------------------------------------
 # regs — run reggen.py; place SystemRDL + Verilog headers into include/
@@ -118,18 +118,31 @@ sw:
 	$(MAKE) -C $(SW_DIR) all
 
 # ---------------------------------------------------------------------------
-# synth — PDK-free yosys generic synthesis
+# synth — PDK-free Yosys flow (synth.tcl + synth_constraints.sdc)
+# Artifacts under synth/; gate count must be <= 15000.
+# Behavioral SRAM (sram_ctrl) remains a hierarchical blackbox — no PDK.
 # ---------------------------------------------------------------------------
+SYNTH_DIR := $(ROOT)/synth
+GATE_LIMIT ?= 15000
+
 synth:
-	@mkdir -p $(OUT)
+	@mkdir -p $(SYNTH_DIR) $(OUT)
 	@test -n "$(RTL_SV)" || (echo "error: no RTL sources found" >&2; exit 1)
-	yosys -q -p "read_verilog -sv -I$(ROOT)/include $(RTL_SV); synth -top dashcam_soc_top; write_verilog $(OUT)/dashcam_soc_top.netlist.v"
-	@test -f $(OUT)/dashcam_soc_top.netlist.v || \
+	@test -f $(ROOT)/synth.tcl || (echo "error: missing synth.tcl" >&2; exit 1)
+	@test -f $(ROOT)/synth_constraints.sdc || \
+		(echo "error: missing synth_constraints.sdc" >&2; exit 1)
+	yosys -s $(ROOT)/synth.tcl
+	@test -f $(SYNTH_DIR)/dashcam_soc_top.netlist.v || \
 		(echo "error: netlist not written" >&2; exit 1)
-	@echo "synth: wrote $(OUT)/dashcam_soc_top.netlist.v"
+	@test -f $(SYNTH_DIR)/stat.rpt || \
+		(echo "error: missing synth/stat.rpt" >&2; exit 1)
+	python3 $(SCRIPTS)/check_gate_count.py $(SYNTH_DIR)/stat.rpt --limit $(GATE_LIMIT)
+	@# Keep legacy out/ netlist path for older consumers
+	@cp -f $(SYNTH_DIR)/dashcam_soc_top.netlist.v $(OUT)/dashcam_soc_top.netlist.v
+	@echo "synth: OK (PDK-free; artifacts in $(SYNTH_DIR)/, gate limit $(GATE_LIMIT))"
 
 clean:
-	rm -rf $(OUT) $(SMOKE_OUT)
+	rm -rf $(OUT) $(SYNTH_DIR) $(SMOKE_OUT)
 	$(MAKE) -C $(SMOKE_DIR) clean ROOT=$(ROOT)
 	@for d in $(IP_TBS); do $(MAKE) -C $(ROOT)/dv/ip/$$d clean ROOT=$(ROOT); done
 	$(MAKE) -C $(SW_DIR) clean
