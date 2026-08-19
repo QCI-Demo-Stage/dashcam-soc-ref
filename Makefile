@@ -38,6 +38,7 @@ lint:
 	verilator --lint-only -sv -Wall -Wno-fatal \
 		--top-module dashcam_soc_top \
 		-I$(ROOT)/ips \
+		-I$(ROOT)/include \
 		$(RTL_SV)
 
 # ---------------------------------------------------------------------------
@@ -65,7 +66,7 @@ sw:
 synth:
 	@mkdir -p $(OUT)
 	@test -n "$(RTL_SV)" || (echo "error: no RTL sources found" >&2; exit 1)
-	yosys -q -p "read_verilog -sv $(RTL_SV); synth -top dashcam_soc_top; write_verilog $(OUT)/dashcam_soc_top.netlist.v"
+	yosys -q -p "read_verilog -sv -I$(ROOT)/include $(RTL_SV); synth -top dashcam_soc_top; write_verilog $(OUT)/dashcam_soc_top.netlist.v"
 	@test -f $(OUT)/dashcam_soc_top.netlist.v || \
 		(echo "error: netlist not written" >&2; exit 1)
 	@echo "synth: wrote $(OUT)/dashcam_soc_top.netlist.v"

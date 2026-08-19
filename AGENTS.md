@@ -57,5 +57,6 @@ make regs && make lint && make sim && make sw && make synth
 - `dv/sim/verilator_smoke/` — smoke harness
 - `sw/` — firmware
 - `csv/` — register address-map source of truth (`register_spec.csv`)
+- `include/` — generated SystemRDL (`*_csr.rdl`) and Verilog CSR defines
 - `scripts/` — generators (`reggen.py`, `csv_validation.py`, `gen_agent_docs.py`)
 - `docs/` — prose / generated register map (Markdown + SystemRDL)
