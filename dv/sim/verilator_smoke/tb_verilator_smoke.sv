@@ -33,6 +33,9 @@ module tb_verilator_smoke;
     logic [31:0] word;
     logic [7:0]  got_r, got_g, got_b;
 
+    // Keep unused DUT outputs referenced for -Wall hygiene
+    wire unused_pads = |{spi_sclk, spi_mosi, spi_cs_n, pad_out, pad_oe, irq_out, word[31:24]};
+
     dashcam_soc_top #(.USE_CPU(1'b0)) dut (
         .clk           (clk),
         .rst_n_async   (rst_n_async),
@@ -58,34 +61,37 @@ module tb_verilator_smoke;
         .irq_out       (irq_out)
     );
 
-    // 100 MHz clock
+    // 100 MHz clock (blocking toggle in always is intentional)
+    // verilator lint_off BLKSEQ
     initial clk = 1'b0;
     always #5 clk = ~clk;
+    // verilator lint_on BLKSEQ
 
     initial begin
         for (i = 0; i < PIXELS; i = i + 1) begin
-            exp_r[i] = 8'(8'h10 + i);
-            exp_g[i] = 8'(8'h40 + i);
-            exp_b[i] = 8'(8'h80 + i);
+            exp_r[i] = 8'(8'h10 + 8'(i));
+            exp_g[i] = 8'(8'h40 + 8'(i));
+            exp_b[i] = 8'(8'h80 + 8'(i));
         end
     end
 
+    // Blocking assigns after @(posedge clk) — tasks are called from initial
     task automatic wb_write(input logic [31:0] adr, input logic [31:0] data);
         begin
             @(posedge clk);
-            ext_cyc   <= 1'b1;
-            ext_stb   <= 1'b1;
-            ext_we    <= 1'b1;
-            ext_sel   <= 4'hF;
-            ext_adr   <= adr;
-            ext_dat_w <= data;
+            ext_cyc   = 1'b1;
+            ext_stb   = 1'b1;
+            ext_we    = 1'b1;
+            ext_sel   = 4'hF;
+            ext_adr   = adr;
+            ext_dat_w = data;
             while (1) begin
                 @(posedge clk);
                 if (ext_ack) break;
             end
-            ext_cyc <= 1'b0;
-            ext_stb <= 1'b0;
-            ext_we  <= 1'b0;
+            ext_cyc = 1'b0;
+            ext_stb = 1'b0;
+            ext_we  = 1'b0;
             @(posedge clk);
         end
     endtask
@@ -93,12 +99,12 @@ module tb_verilator_smoke;
     task automatic wb_read(input logic [31:0] adr, output logic [31:0] data);
         begin
             @(posedge clk);
-            ext_cyc   <= 1'b1;
-            ext_stb   <= 1'b1;
-            ext_we    <= 1'b0;
-            ext_sel   <= 4'hF;
-            ext_adr   <= adr;
-            ext_dat_w <= 32'h0;
+            ext_cyc   = 1'b1;
+            ext_stb   = 1'b1;
+            ext_we    = 1'b0;
+            ext_sel   = 4'hF;
+            ext_adr   = adr;
+            ext_dat_w = 32'h0;
             while (1) begin
                 @(posedge clk);
                 if (ext_ack) begin
@@ -106,8 +112,8 @@ module tb_verilator_smoke;
                     break;
                 end
             end
-            ext_cyc <= 1'b0;
-            ext_stb <= 1'b0;
+            ext_cyc = 1'b0;
+            ext_stb = 1'b0;
             @(posedge clk);
         end
     endtask
@@ -115,11 +121,11 @@ module tb_verilator_smoke;
     task automatic cam_send_byte(input logic [7:0] b);
         begin
             @(posedge clk);
-            cam_href       <= 1'b1;
-            cam_pclk_valid <= 1'b1;
-            cam_data       <= b;
+            cam_href       = 1'b1;
+            cam_pclk_valid = 1'b1;
+            cam_data       = b;
             @(posedge clk);
-            cam_pclk_valid <= 1'b0;
+            cam_pclk_valid = 1'b0;
             // Allow DMA backpressure cycles
             repeat (8) @(posedge clk);
         end
@@ -155,9 +161,9 @@ module tb_verilator_smoke;
 
         // Start frame
         @(posedge clk);
-        cam_vsync <= 1'b1;
+        cam_vsync = 1'b1;
         @(posedge clk);
-        cam_vsync <= 1'b0;
+        cam_vsync = 1'b0;
 
         // Drive RGB bytes
         for (i = 0; i < PIXELS; i = i + 1) begin
@@ -165,7 +171,7 @@ module tb_verilator_smoke;
             cam_send_byte(exp_g[i]);
             cam_send_byte(exp_b[i]);
             @(posedge clk);
-            cam_href <= 1'b0;
+            cam_href = 1'b0;
             @(posedge clk);
         end
 
@@ -184,6 +190,8 @@ module tb_verilator_smoke;
                 $error("timeout waiting for DMA done");
                 fail = 1;
             end
+            // Reference remaining status bits for lint
+            if (|{st[0], st[31:2]} && 1'b0) fail = fail;
         end
 
         // Read back pixels from SRAM and write PPM
@@ -208,10 +216,13 @@ module tb_verilator_smoke;
         end
         $fclose(fd);
 
-        if (fail) begin
+        if (fail != 0) begin
             $error("SMOKE_FAIL");
             $fatal(1);
         end
+
+        // Touch unused_pads so the sink is not itself unused
+        if (unused_pads && 1'b0) $display("unreachable");
 
         $display("SMOKE_PASS");
         $finish;

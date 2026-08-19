@@ -14,7 +14,7 @@ all: $(BIN)
 
 $(BIN): $(TB_SV) $(RTL_SV)
 	mkdir -p $(OUT)
-	verilator --binary --timing -sv -Wall -Wno-fatal \
+	verilator --binary --timing -sv -Wall \
 		--top-module tb_verilator_smoke \
 		-I$(ROOT)/include \
 		-Mdir $(OBJ_DIR) \
