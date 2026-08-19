@@ -1,4 +1,5 @@
 out/
+synth/
 dv/sim/verilator_smoke/out/
 dv/ip/*/out/
 sw/out/

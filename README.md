@@ -18,7 +18,7 @@ make regs && make lint && make sim && make sw && make synth
 | `sim` | Verilator smoke (`SMOKE_PASS` + PPM) |
 | `ip_sim` | Per-IP Verilator benches (cam/dma/sram/peripherals) |
 | `sw` | Firmware image → `sw/out/firmware.hex` (RISC-V GCC or stub fallback) |
-| `synth` | Yosys generic `synth -top dashcam_soc_top` |
+| `synth` | PDK-free Yosys via `synth.tcl` + `synth_constraints.sdc` (≤15 k gates) |
 
 ## Firmware
 
@@ -36,7 +36,8 @@ With a RISC-V toolchain it compiles `sw/src/firmware.c`; otherwise it copies
 - `csv/` — register address-map source of truth (`register_spec.csv`)
 - `include/` — generated per-IP SystemRDL and Verilog CSR `define`s
 - `scripts/` — `reggen.py`, `csv_validation.py`, `gen_agent_docs.py`
-- `docs/` — register map, [`integration.md`](docs/integration.md), [`firmware.md`](docs/firmware.md), IP specs (`docs/ip/`)
+- `docs/` — register map, [`integration.md`](docs/integration.md), [`firmware.md`](docs/firmware.md), [`synthesis.md`](docs/synthesis.md), IP specs (`docs/ip/`)
+- `synth.tcl` / `synth_constraints.sdc` — PDK-free Yosys synthesis + generic SDC
 
 ## Hardware notes
 
