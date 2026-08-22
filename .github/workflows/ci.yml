@@ -1,0 +1,65 @@
+# GitHub Actions — Dashcam SoC self-check contract (regs → lint → sim → sw → synth)
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  self-check:
+    name: Self-check (regs lint sim sw synth)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install EDA / toolchain packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            verilator \
+            yosys \
+            gcc-riscv64-unknown-elf
+
+      - name: Prepare log directory
+        run: mkdir -p ci-logs
+
+      - name: make regs
+        run: make regs 2>&1 | tee ci-logs/regs.log
+        # Pipeline exit status must reflect make (not tee)
+        shell: bash -eo pipefail {0}
+
+      - name: make lint
+        run: make lint 2>&1 | tee ci-logs/lint.log
+        shell: bash -eo pipefail {0}
+
+      - name: make sim
+        run: make sim 2>&1 | tee ci-logs/sim.log
+        shell: bash -eo pipefail {0}
+
+      - name: make sw
+        run: make sw 2>&1 | tee ci-logs/sw.log
+        shell: bash -eo pipefail {0}
+
+      - name: make synth
+        run: make synth 2>&1 | tee ci-logs/synth.log
+        shell: bash -eo pipefail {0}
+
+      - name: Upload CI logs and artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-self-check-logs
+          path: |
+            ci-logs/
+            lint_report.txt
+            dv/sim/verilator_smoke/out/
+            sw/out/
+            synth/
+          if-no-files-found: warn
