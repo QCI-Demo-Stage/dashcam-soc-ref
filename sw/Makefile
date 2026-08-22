@@ -63,8 +63,8 @@ $(OUT)/firmware.bin: $(OUT)/firmware.elf
 	$(OBJCOPY) -O binary $< $@
 
 $(OUT)/firmware.hex: $(OUT)/firmware.bin
-	python3 -c 'import pathlib,struct,sys; d=pathlib.Path(sys.argv[1]).read_bytes(); d+=bytes((-len(d))%4); \
-p=pathlib.Path(sys.argv[2]); p.write_text("".join(f"{struct.unpack_from(\"<I\",d,i)[0]:08x}\n" for i in range(0,len(d),4)))' \
+	python3 -c 'import pathlib,struct,sys; d=pathlib.Path(sys.argv[1]).read_bytes(); d+=bytes((-len(d))%4); fmt="<I"; \
+p=pathlib.Path(sys.argv[2]); p.write_text("".join("{:08x}\n".format(struct.unpack_from(fmt,d,i)[0]) for i in range(0,len(d),4)))' \
 		$(OUT)/firmware.bin $(OUT)/firmware.hex
 endif
 
