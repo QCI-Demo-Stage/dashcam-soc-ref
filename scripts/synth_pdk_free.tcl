@@ -2,7 +2,7 @@
 # Public entry: yosys -s synth.tcl  (loads this file via `tcl`)
 # Also:        make synth
 #
-# Reads all synthesizable RTL under ips/ and top/, applies generic SDC
+# Reads all synthesizable RTL under ips/, fips/, and top/, applies generic SDC
 # constraints, runs technology-independent synthesis, and writes a gate-level
 # netlist plus area/timing reports under synth/. Behavioral on-chip SRAM
 # (sram_ctrl) is kept as a hierarchical blackbox so the logic stays within the
@@ -62,12 +62,12 @@ file mkdir $SYNTH_DIR
 # ---------------------------------------------------------------------------
 # 1) List all Verilog/SystemVerilog sources via recursive find
 # ---------------------------------------------------------------------------
-puts "Listing RTL sources (find ips top -name '*.sv' -o -name '*.v')..."
-set rtl_raw [exec find ips top -type f ( -name *.sv -o -name *.v )]
+puts "Listing RTL sources (find ips fips top -name '*.sv' -o -name '*.v')..."
+set rtl_raw [exec find ips fips top -type f ( -name *.sv -o -name *.v )]
 set rtl_files [lsort [split $rtl_raw "\n"]]
 
 if {[llength $rtl_files] == 0} {
-	error "No RTL sources found under ips/ or top/"
+	error "No RTL sources found under ips/, fips/, or top/"
 }
 
 # ---------------------------------------------------------------------------

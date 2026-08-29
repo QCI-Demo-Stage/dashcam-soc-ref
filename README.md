@@ -28,7 +28,8 @@ With a RISC-V toolchain it compiles `sw/src/firmware.c`; otherwise it copies
 
 ## Layout
 
-- `ips/<block>/rtl/` — IP block RTL
+- `ips/<block>/rtl/` — functional IP block RTL stubs
+- `fips/<block>/rtl/` — fabric IP stubs (Wishbone interconnect, reset sync, CPU master)
 - `top/rtl/` — `dashcam_soc_top`
 - `dv/sim/verilator_smoke/` — smoke harness
 - `dv/ip/<block>/` — per-IP Verilator testbenches

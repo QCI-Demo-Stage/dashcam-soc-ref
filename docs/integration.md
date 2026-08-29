@@ -10,9 +10,9 @@ hierarchical CSR bases on a shared bus map.
 
 ```text
 dashcam_soc_top
-├── rst_sync                         async assert / sync deassert
-├── picorv32_wb                      USE_CPU=1 Wishbone master (else external)
-├── wb_interconnect                  window decode: CSR | SRAM
+├── rst_sync            [fips/]  async assert / sync deassert
+├── picorv32_wb         [fips/]  USE_CPU=1 Wishbone master (else external)
+├── wb_interconnect     [fips/]  window decode: CSR | SRAM
 │   ├── s0 → soc_csr → address_decode
 │   │         ├── csr_cam    @ 0x1000_0000
 │   │         ├── csr_dma    @ 0x1000_0100
@@ -20,15 +20,15 @@ dashcam_soc_top
 │   │         ├── csr_iomux  @ 0x1000_0300
 │   │         └── csr_sdspi  @ 0x1000_0400
 │   └── s1 → sram_ctrl       @ 0x2000_0000
-├── cam_capture                      pixel pack + FIFO → DMA
-├── dma_engine                       Wishbone master → SRAM
-├── irq_ctrl                         rising-edge pending + enable mask
-├── iomux                            pad mux peripheral stub
-└── sd_spi                           SPI peripheral stub
+├── cam_capture         [ips/]   pixel pack + FIFO → DMA
+├── dma_engine          [ips/]   Wishbone master → SRAM
+├── irq_ctrl            [ips/]   rising-edge pending + enable mask
+├── iomux               [ips/]   pad mux peripheral stub
+└── sd_spi              [ips/]   SPI peripheral stub
 ```
 
 `wb_periph_stub` remains a reusable Wishbone CSR template for IP benches; the
-SoC uses the functional `sd_spi` / `iomux` / `rst_sync` stubs instead.
+SoC uses the functional `sd_spi` / `iomux` stubs and fabric `rst_sync` instead.
 
 ## Architecture diagram
 

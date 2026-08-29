@@ -59,7 +59,7 @@ python3 scripts/check_gate_count.py synth/stat.rpt --limit 15000
 ## Flow steps (`synth.tcl`)
 
 ```text
-find ips/ top/  →  *.sv / *.v
+find ips/ fips/ top/  →  *.sv / *.v
         │
         ▼
  read_verilog -sv -Iinclude   (each file)

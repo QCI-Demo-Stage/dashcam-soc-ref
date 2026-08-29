@@ -6,7 +6,7 @@ OBJ_DIR   := $(OUT)/obj_dir
 BIN       := $(OUT)/sim_smoke
 SW_DIR    := $(ROOT)/sw
 
-RTL_SV := $(shell find $(ROOT)/ips $(ROOT)/top -type f \( -name '*.sv' -o -name '*.v' \) | sort)
+RTL_SV := $(shell find $(ROOT)/ips $(ROOT)/fips $(ROOT)/top -type f \( -name '*.sv' -o -name '*.v' \) | sort)
 TB_SV  := $(SMOKE_DIR)/tb_verilator_smoke.sv
 
 .PHONY: all run clean

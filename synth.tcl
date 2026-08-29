@@ -8,7 +8,7 @@
 # file is the `-s` entry required by CI. The TCL body in
 # scripts/synth_pdk_free.tcl performs the Synthesis Collateral flow:
 #
-#   1. Recursive find of ips/** and top/** (*.sv / *.v)
+#   1. Recursive find of ips/**, fips/**, and top/** (*.sv / *.v)
 #   2. read_verilog -sv -Iinclude for each file
 #   3. hierarchy -check -top dashcam_soc_top  (+ blackbox sram_ctrl)
 #   4. read_sdc synth_constraints.sdc          (shim; logs success)
