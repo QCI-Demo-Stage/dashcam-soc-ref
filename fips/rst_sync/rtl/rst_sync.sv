@@ -1,4 +1,5 @@
-// Reset synchronizer — 2-flop async-assert / sync-deassert active-low reset.
+// Reset synchronizer stub (fabric IP) — 2-flop async-assert / sync-deassert.
+// Placeholder for future multi-clock / power-on reset expansion.
 `timescale 1ns / 1ps
 
 module rst_sync (
@@ -8,6 +9,9 @@ module rst_sync (
 );
     logic r0, r1;
 
+    // -------------------------------------------------------------------------
+    // Placeholder: future POR / multi-domain sync chain
+    // -------------------------------------------------------------------------
     always_ff @(posedge clk or negedge rst_n_async) begin
         if (!rst_n_async) begin
             r0 <= 1'b0;

@@ -1,8 +1,9 @@
 // Dashcam SoC top — integrated Wishbone B4 SoC
+// Functional IPs under ips/; fabric stubs under fips/; CSR decode in top/
 // CSR window @ 0x1000_0000 (via address_decode / per-IP csr_* blocks)
 // SRAM window @ 0x2000_0000 (sram_ctrl)
 // USE_CPU=0 (default): external Wishbone master
-// USE_CPU=1: picoRV32 stub master
+// USE_CPU=1: picoRV32 stub master (fips/picorv32_wb)
 // Hierarchy and interrupt map: docs/integration.md
 `timescale 1ns / 1ps
 

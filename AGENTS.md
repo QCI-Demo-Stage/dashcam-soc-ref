@@ -43,24 +43,25 @@ make regs && make lint && make sim && make sw && make synth
 | `dma_engine` | `ips/dma_engine/rtl/dma_engine.sv` |
 | `iomux` | `ips/iomux/rtl/iomux.sv` |
 | `irq_ctrl` | `ips/irq_ctrl/rtl/irq_ctrl.sv` |
-| `picorv32_wb` | `ips/picorv32_wb/rtl/picorv32_wb.sv` |
-| `rst_sync` | `ips/rst_sync/rtl/rst_sync.sv` |
 | `sd_spi` | `ips/sd_spi/rtl/sd_spi.sv` |
 | `soc_csr` | `ips/soc_csr/rtl/soc_csr.sv` |
 | `sram_ctrl` | `ips/sram_ctrl/rtl/sram_ctrl.sv` |
-| `wb_interconnect` | `ips/wb_interconnect/rtl/wb_interconnect.sv` |
 | `wb_periph_stub` | `ips/wb_periph_stub/rtl/wb_periph_stub.sv` |
 | `csr_cam` | `ips/cam/csr_cam.v` |
 | `csr_dma` | `ips/dma/csr_dma.v` |
 | `csr_iomux` | `ips/iomux/csr_iomux.v` |
 | `csr_irq` | `ips/irq/csr_irq.v` |
 | `csr_sdspi` | `ips/sdspi/csr_sdspi.v` |
+| `picorv32_wb` | `fips/picorv32_wb/rtl/picorv32_wb.sv` |
+| `rst_sync` | `fips/rst_sync/rtl/rst_sync.sv` |
+| `wb_interconnect` | `fips/wb_interconnect/rtl/wb_interconnect.sv` |
 | `dashcam_soc_top` | `top/rtl/dashcam_soc_top.sv` |
 | `address_decode` | `top/address_decode.v` |
 
 ## Layout
 
-- `ips/<block>/rtl/` — IP block RTL stubs
+- `ips/<block>/rtl/` — functional IP block RTL stubs
+- `fips/<block>/rtl/` — fabric IP stubs (interconnect, reset, CPU master)
 - `top/rtl/` — chip top
 - `dv/sim/verilator_smoke/` — smoke harness
 - `sw/` — firmware

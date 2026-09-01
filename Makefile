@@ -9,7 +9,8 @@ SMOKE_OUT := $(SMOKE_DIR)/out
 SW_DIR    := $(ROOT)/sw
 
 # Synthesizable RTL only (never testbenches)
-RTL_SV := $(shell find $(ROOT)/ips $(ROOT)/top -type f \( -name '*.sv' -o -name '*.v' \) | sort)
+# ips/ = functional IP stubs; fips/ = fabric IP stubs; top/ = chip top
+RTL_SV := $(shell find $(ROOT)/ips $(ROOT)/fips $(ROOT)/top -type f \( -name '*.sv' -o -name '*.v' \) | sort)
 
 .PHONY: regs lint sim ip_sim sw synth clean help
 
@@ -61,6 +62,7 @@ lint:
 	  verilator --lint-only -sv -Wall \
 	    --top-module $(LINT_TOP) \
 	    -I$(ROOT)/ips \
+	    -I$(ROOT)/fips \
 	    -I$(ROOT)/include \
 	    $(RTL_SV); \
 	  for m in $(LINT_LEAVES); do \
@@ -70,6 +72,7 @@ lint:
 	    verilator --lint-only -sv -Wall \
 	      --top-module $$m \
 	      -I$(ROOT)/ips \
+	      -I$(ROOT)/fips \
 	      -I$(ROOT)/include \
 	      $$f; \
 	  done; \

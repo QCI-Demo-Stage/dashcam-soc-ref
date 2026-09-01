@@ -2,7 +2,7 @@
 """Generate AGENTS.md from the live repository tree.
 
 Discover Make targets from the root Makefile and SystemVerilog modules from
-RTL under ips/*/rtl and top/rtl. Never hand-maintain AGENTS.md.
+RTL under ips/*/rtl, fips/*/rtl, and top/rtl. Never hand-maintain AGENTS.md.
 
 Usage:
   python3 scripts/gen_agent_docs.py          # write AGENTS.md
@@ -44,7 +44,7 @@ def discover_targets(makefile: Path) -> list[str]:
 
 def discover_modules() -> list[tuple[str, str]]:
     modules: list[tuple[str, str]] = []
-    rtl_roots = [ROOT / "ips", ROOT / "top"]
+    rtl_roots = [ROOT / "ips", ROOT / "fips", ROOT / "top"]
     files: list[Path] = []
     for root in rtl_roots:
         if not root.exists():
@@ -52,7 +52,7 @@ def discover_modules() -> list[tuple[str, str]]:
         files.extend(sorted(root.rglob("*.sv")))
         files.extend(sorted(root.rglob("*.v")))
     for path in files:
-        # Synthesizable RTL: classic ips/*/rtl and top/rtl trees, plus
+        # Synthesizable RTL: ips/*/rtl, fips/*/rtl, and top/rtl trees, plus
         # per-IP CSR modules (ips/<ip>/csr_<ip>.v) and top/address_decode.v.
         parts = path.parts
         name = path.name
@@ -124,7 +124,8 @@ def render(targets: list[str], modules: list[tuple[str, str]]) -> str:
     lines.append("")
     lines.append("## Layout")
     lines.append("")
-    lines.append("- `ips/<block>/rtl/` — IP block RTL stubs")
+    lines.append("- `ips/<block>/rtl/` — functional IP block RTL stubs")
+    lines.append("- `fips/<block>/rtl/` — fabric IP stubs (interconnect, reset, CPU master)")
     lines.append("- `top/rtl/` — chip top")
     lines.append("- `dv/sim/verilator_smoke/` — smoke harness")
     lines.append("- `sw/` — firmware")
