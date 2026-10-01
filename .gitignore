@@ -1,11 +1,21 @@
-out/
+# Build artefacts and generated outputs
+build/
 synth/
+out/
+*.log
+*.vcd
+*.hex
+*.svf
+*.fst
+
+# Simulation outputs
+dv/sim/**/*.out
 dv/sim/verilator_smoke/out/
 dv/ip/*/out/
 sw/out/
 lint_report.txt
-*.vcd
-*.fst
+
+# Python / editor debris
 __pycache__/
 *.pyc
 .DS_Store
